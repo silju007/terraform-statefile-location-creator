@@ -24,7 +24,13 @@ def main():
     # Create S3 bucket
     s3 = session.client('s3')
     try:
-        s3.create_bucket(Bucket=s3_bucket_name, CreateBucketConfiguration={'LocationConstraint': region})
+        if region == 'us-east-1':
+            s3.create_bucket(Bucket=s3_bucket_name)
+        else:
+            s3.create_bucket(
+                Bucket=s3_bucket_name,
+                CreateBucketConfiguration={'LocationConstraint': region}
+            )
         print(f'S3 bucket "{s3_bucket_name}" created successfully.')
     except Exception as e:
         print(f'Error creating S3 bucket: {e}')
@@ -36,13 +42,13 @@ def main():
             TableName=dynamodb_table_name,
             KeySchema=[
                 {
-                    'AttributeName': 'id',
+                    'AttributeName': 'LockID',
                     'KeyType': 'HASH'  # Partition key
                 },
             ],
             AttributeDefinitions=[
                 {
-                    'AttributeName': 'id',
+                    'AttributeName': 'LockID',
                     'AttributeType': 'S'
                 },
             ],
@@ -51,6 +57,7 @@ def main():
                 'WriteCapacityUnits': 5
             }
         )
+        dynamodb.get_waiter('table_exists').wait(TableName=dynamodb_table_name)
         print(f'DynamoDB table "{dynamodb_table_name}" created successfully.')
     except Exception as e:
         print(f'Error creating DynamoDB table: {e}')
